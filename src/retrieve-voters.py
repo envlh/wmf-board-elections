@@ -31,7 +31,7 @@ def fetch_url(url):
     return response.text
 
 
-class User:
+class Vote:
 
     def __init__(self, login, home, vote_date, options, wikis):
         self.login = login
@@ -41,7 +41,7 @@ class User:
         self.wikis = wikis
 
     def __repr__(self):
-        return 'User({}, {}, {}, {}, {})'.format(self.login, self.home, self.vote_date, self.options, self.wikis)
+        return 'Vote({}, {}, {}, {}, {})'.format(self.login, self.home, self.vote_date, self.options, self.wikis)
 
 
 class Wiki:
@@ -57,31 +57,35 @@ class Wiki:
 
 
 def main():
-    users = set()
+    active_votes_count = 0
+    votes = set()
     url = 'https://vote.wikimedia.org/w/index.php?title=Special:SecurePoll/list/1364&limit=500'
     while url:
         print(url)
-        user_data = fetch_url(url)
+        vote_data = fetch_url(url)
         # next page
-        url_match = set(re.findall("<a role='button' tabindex='0' href='([^']+)' rel='nofollow' class='oo-ui-buttonElement-button'><span class='oo-ui-iconElement-icon oo-ui-icon-next oo-ui-image-progressive'></span><span class='oo-ui-labelElement-label'>Next page</span>", user_data))
+        url_match = set(re.findall("<a role='button' tabindex='0' href='([^']+)' rel='nofollow' class='oo-ui-buttonElement-button'><span class='oo-ui-iconElement-icon oo-ui-icon-next oo-ui-image-progressive'></span><span class='oo-ui-labelElement-label'>Next page</span>", vote_data))
         if url_match:
             url = 'https://vote.wikimedia.org{}'.format(html.unescape(url_match.pop()))
         else:
             url = None
-        # users data
-        user_matches = re.findall('<tr(?: class="([^<>]+)")?>\n<td class="TablePager_col_vote_id">([^<]+)</td>\n<td class="TablePager_col_vote_voter_name">([^<]+)</td>\n<td class="TablePager_col_vote_voter_domain">([^<]+)</td>\n</tr>', user_data)
-        for user_match in user_matches:
-            user = User(user_match[2], user_match[3], user_match[1], set(user_match[0].split()), set())
+        # votes data
+        vote_matches = re.findall('<tr(?: class="([^<>]+)")?>\n<td class="TablePager_col_vote_id">([^<]+)</td>\n<td class="TablePager_col_vote_voter_name">([^<]+)</td>\n<td class="TablePager_col_vote_voter_domain">([^<]+)</td>\n</tr>', vote_data)
+        for vote_match in vote_matches:
+            vote = Vote(vote_match[2], vote_match[3], vote_match[1], set(vote_match[0].split()), set())
+            if not vote.options:
+                active_votes_count += 1
             wikis = set()
-            wiki_data = fetch_url('https://meta.wikimedia.org/wiki/Special:CentralAuth/{}'.format(user.login.replace(' ', '_')))
+            wiki_data = fetch_url('https://meta.wikimedia.org/wiki/Special:CentralAuth/{}'.format(vote.login.replace(' ', '_')))
             wiki_matches = re.findall('<tr><td><a[^<>]+>([^<>]+)</a></td><td data-sort-value="([0-9]+)">[^<>]+</td><td style="text-align: center;"><img[^<>]+/><span[^<>]+>\\(\\?\\)</span></td><td><a[^<>]+>.*?</a></td><td style="text-align: right;"><a[^<>]+>([0-9,]+)</a></td><td>(.*?)</td></tr>', wiki_data)
             for wiki_match in wiki_matches:
                 wiki = Wiki(wiki_match[0], wiki_match[1], int(wiki_match[2].replace(',', '')), set(filter(None, wiki_match[3].split(', '))))
                 wikis.add(wiki)
-                if 'bot' in wiki.groups:
-                    print('{} is a bot on {}'.format(user.login, wiki.url))
-            user.wikis = wikis
-            users.add(user)
+                if 'bot' in wiki.groups or 'copyviobot' in wiki.groups:
+                    print('{} has a bot flag on {}'.format(vote.login, wiki.url))
+            vote.wikis = wikis
+            votes.add(vote)
+    print('{} votes, {} active.'.format(len(votes), active_votes_count))
 
 
 if __name__ == '__main__':
