@@ -58,7 +58,7 @@ class Wiki:
 
 def main():
     active_votes_count = 0
-    votes = set()
+    votes = []
     url = 'https://vote.wikimedia.org/w/index.php?title=Special:SecurePoll/list/1364&limit=500'
     while url:
         print(url)
@@ -72,7 +72,7 @@ def main():
         # votes data
         vote_matches = re.findall('<tr(?: class="([^<>]+)")?>\n<td class="TablePager_col_vote_id">([^<]+)</td>\n<td class="TablePager_col_vote_voter_name">([^<]+)</td>\n<td class="TablePager_col_vote_voter_domain">([^<]+)</td>\n</tr>', vote_data)
         for vote_match in vote_matches:
-            vote = Vote(vote_match[2], vote_match[3], vote_match[1], set(vote_match[0].split()), set())
+            vote = Vote(html.unescape(vote_match[2]), vote_match[3], vote_match[1], set(vote_match[0].split()), set())
             if not vote.options:
                 active_votes_count += 1
             wikis = set()
@@ -84,8 +84,26 @@ def main():
                 if 'bot' in wiki.groups or 'copyviobot' in wiki.groups:
                     print('{} has a bot flag on {}'.format(vote.login, wiki.url))
             vote.wikis = wikis
-            votes.add(vote)
+            votes.append(vote)
     print('{} votes, {} active.'.format(len(votes), active_votes_count))
+
+    print('Number of votes per year of registration:')
+    years = dict()
+    for vote in votes:
+        if not vote.options:
+            data = fetch_url('https://meta.wikimedia.org/wiki/Special:CentralAuth/{}'.format(vote.login.replace(' ', '_')))
+            match = re.findall('<strong>Registered:</strong> [^(]+ ([0-9]{4}) \\(', data)
+            if match:
+                year = int(match.pop())
+            else:
+                year = 0
+            if year in years:
+                years[year] += 1
+            else:
+                years[year] = 1
+    for year in range(2008, 2023):
+        print('{}: {}'.format(year, years[year]))
+    print('N/A: {}'.format(years[0]))
 
 
 if __name__ == '__main__':
