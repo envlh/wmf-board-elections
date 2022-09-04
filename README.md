@@ -1,6 +1,8 @@
 ## Description
 
-This script checks if voters of the 2022 Wikimedia Foundation board elections have the bot flag.
+The script `retrieve-votes.py` checks if voters of the 2022 Wikimedia Foundation board elections have the bot flag.
+
+The script `generate-statistics.py` generates various aggregated statistics about voters. It must be run after `retrieve-votes.py`.
 
 ## Copyright
 
