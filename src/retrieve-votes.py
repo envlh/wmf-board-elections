@@ -42,6 +42,7 @@ def main():
             vote = {'login': html.unescape(vote_match[2]), 'home': vote_match[3], 'vote_date': vote_match[1], 'options': sorted(set(vote_match[0].split())), 'wikis': [], 'registration': 'N/A'}
             if not vote['options']:
                 active_votes_count += 1
+                blocks = 0
                 if vote['login'] in items_index:
                     items[items_index[vote['login']]]['votes'].add(vote['login'])
                     if items[items_index[vote['login']]]['death'] is not None:
@@ -53,13 +54,17 @@ def main():
                 if match:
                     vote['registration'] = match.pop()
                 # wikis
-                wiki_matches = re.findall('<tr><td><a[^<>]+>([^<>]+)</a></td><td data-sort-value="([0-9]+)">[^<>]+</td><td style="text-align: center;"><img[^<>]+/><span[^<>]+>\\(\\?\\)</span></td><td><a[^<>]+>.*?</a></td><td style="text-align: right;"><a[^<>]+>([0-9,]+)</a></td><td>(.*?)</td></tr>', wiki_data)
+                wiki_matches = re.findall('<tr><td><a[^<>]+>([^<>]+)</a></td><td data-sort-value="([0-9]+)">[^<>]+</td><td style="text-align: center;"><img[^<>]+/><span[^<>]+>\\(\\?\\)</span></td><td>(.*?)</td><td style="text-align: right;"><a[^<>]+>([0-9,]+)</a></td><td>(.*?)</td></tr>', wiki_data)
                 for wiki_match in wiki_matches:
-                    wiki = {'url': wiki_match[0], 'sub_date': wiki_match[1], 'edits': int(wiki_match[2].replace(',', '')), 'groups': sorted(set(filter(None, wiki_match[3].split(', '))))}
+                    wiki = {'url': wiki_match[0], 'sub_date': wiki_match[1], 'block': re.sub('<[^<]+?>', '', wiki_match[2]), 'edits': int(wiki_match[3].replace(',', '')), 'groups': sorted(set(filter(None, wiki_match[4].split(', '))))}
                     wikis.append(wiki)
                     if 'bot' in wiki['groups'] or 'copyviobot' in wiki['groups']:
                         print('{} is in a bot group on {}'.format(vote['login'], wiki['url']))
+                    if wiki['block'] != '—':
+                        blocks += 1
                 vote['wikis'] = wikis
+                if blocks > 1:
+                    print('{} is blocked on more than one project.'.format(vote['login']))
             votes.append(vote)
     utils.file_put_contents('data/votes.json', json.dumps(votes))
     print('{} votes, {} active.'.format(len(votes), active_votes_count))
