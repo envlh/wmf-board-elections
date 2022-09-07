@@ -2,6 +2,8 @@ import hashlib
 import json
 import requests
 import time
+import urllib.parse
+
 from os.path import exists
 
 
@@ -20,10 +22,10 @@ def load_json_file(filename):
     return json.loads(file_get_contents(filename))
 
 
-def fetch_url(url):
+def fetch_url(url, cache=True):
     urlhash = hashlib.sha1(url.encode()).hexdigest()
     filepath = 'cache/{}.html'.format(urlhash)
-    if exists(filepath):
+    if cache and exists(filepath):
         return file_get_contents(filepath)
     response = requests.get(url, headers={'User-Agent': 'github.com/envlh/wmf-board-elections'}, allow_redirects=False)
     if response.status_code != 200:
@@ -32,3 +34,12 @@ def fetch_url(url):
     file_put_contents(filepath, response.text)
     time.sleep(5)
     return response.text
+
+
+def fetch_url_json(url, cache=True):
+    return json.loads(fetch_url(url, cache))
+
+
+def sparql_query(query):
+    url = 'https://query.wikidata.org/sparql?{}'.format(urllib.parse.urlencode({'query': query, 'format': 'json'}))
+    return fetch_url_json(url, False)['results']['bindings']
