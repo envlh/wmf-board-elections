@@ -7,11 +7,17 @@ def main():
 
     votes = utils.load_json_file('data/votes.json')
 
+    found = False
+
     for vote in votes:
         if vote['login'] == login:
-            print('{} voted.'.format(login))
+            found = True
+            print('User:{} voted on {}'.format(login, vote['date']))
             if vote['options']:
-                print('Vote is not valid.')
+                print('Previous vote is not valid: {}'.format(', '.join(vote['options'])))
+
+    if not found:
+        print('No vote found for User:{}'.format(login))
 
 
 if __name__ == '__main__':

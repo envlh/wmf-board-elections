@@ -39,7 +39,7 @@ def main():
         # votes data
         vote_matches = re.findall('<tr(?: class="([^<>]+)")?>\n<td class="TablePager_col_vote_id">([^<]+)</td>\n<td class="TablePager_col_vote_voter_name">([^<]+)</td>\n<td class="TablePager_col_vote_voter_domain">([^<]+)</td>\n</tr>', vote_data)
         for vote_match in vote_matches:
-            vote = {'login': html.unescape(vote_match[2]), 'home': vote_match[3], 'vote_date': vote_match[1], 'options': sorted(set(vote_match[0].split())), 'wikis': [], 'registration': 'N/A'}
+            vote = {'login': html.unescape(vote_match[2]), 'home': vote_match[3], 'date': vote_match[1], 'options': sorted(set(vote_match[0].split())), 'wikis': [], 'registration': 'N/A'}
             if not vote['options']:
                 active_votes_count += 1
                 blocks = 0
